@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Medical Risk Analyzer</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+
+            /* 🔴 RED MEDICAL BACKGROUND */
+            background: radial-gradient(circle at top,
+                #3b0a0a,
+                #120000,
+                #050000);
+        }
+
+        /* Background image overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+
+            background: url("https://images.unsplash.com/photo-1580281657527-47f249e8f2f1?auto=format&fit=crop&w=1600&q=80");
+            background-size: cover;
+            background-position: center;
+
+            opacity: 0.12;
+            z-index: 0;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 🧊 RED GLASS CARD */
+        .container {
+            position: relative;
+            z-index: 2;
+
+            width: 520px;
+            margin: 40px auto;
+
+            background: rgba(255, 230, 230, 0.08);
+            backdrop-filter: blur(14px);
+
+            padding: 25px;
+            border-radius: 18px;
+
+            border: 1px solid rgba(255, 80, 80, 0.25);
+
+            box-shadow:
+                0 25px 60px rgba(0,0,0,0.6),
+                inset 0 0 20px rgba(255, 80, 80, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #ffb3b3;
+            font-weight: 600;
+        }
+
+        /* Gender buttons */
+        .gender {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .gbtn {
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,100,100,0.3);
+            cursor: pointer;
+            background: rgba(255,255,255,0.05);
+            color: #ffd6d6;
+            transition: 0.3s;
+        }
+
+        .gbtn.active {
+            background: rgba(255, 60, 60, 0.25);
+            border-color: #ff4d4d;
+            transform: scale(1.05);
+        }
+
+        /* Inputs */
+        .field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            gap: 10px;
+        }
+
+        .field input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,100,100,0.3);
+
+            background: rgba(0,0,0,0.25);
+            color: #fff;
+            outline: none;
+        }
+
+        .field input::placeholder {
+            color: rgba(255, 200, 200, 0.6);
+        }
+
+        .hint {
+            font-size: 11px;
+            color: rgba(255,180,180,0.7);
+            white-space: nowrap;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 12px;
+
+            background: linear-gradient(135deg, #ff3b3b, #b30000);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.03);
+        }
+
+        #pregnancyField {
+            display: none;
+        }
+
+        /* ECG BOX */
+        .ecg-box {
+            margin-top: 18px;
+            height: 80px;
+            border-radius: 12px;
+
+            background: rgba(255, 0, 0, 0.05);
+            border: 1px solid rgba(255,100,100,0.2);
+            overflow: hidden;
+        }
+
+        .line {
+            stroke: #ff3b3b;
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 300;
+            stroke-dashoffset: 300;
+            animation: draw 1.8s linear infinite;
+        }
+
+        @keyframes draw {
+            to { stroke-dashoffset: 0; }
+        }
+
+        .result {
+            text-align: center;
+            margin-top: 12px;
+            font-weight: 600;
+            color: #ffb3b3;
+        }
+    </style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="container">
+
+    <h2>🩸 Diabetes Risk Analyzer</h2>
+
+    <form method="POST" action="/predict">
+
+        <div class="gender">
+            <div class="gbtn" onclick="selectGender('male', event)">👨 Male</div>
+            <div class="gbtn" onclick="selectGender('female', event)">👩 Female</div>
+        </div>
+
+        <input type="hidden" name="gender" id="gender">
+
+        <div id="pregnancyField" class="field">
+            <input type="number" name="pregnancies" placeholder="Pregnancies (female only)">
+            <span class="hint">0–5</span>
+        </div>
+
+        <div class="field"><input name="glucose" placeholder="Glucose Level"><span class="hint">70–140</span></div>
+        <div class="field"><input name="bloodpressure" placeholder="Blood Pressure"><span class="hint">80–120</span></div>
+        <div class="field"><input name="skinthickness" placeholder="Skin Thickness"><span class="hint">10–50</span></div>
+        <div class="field"><input name="insulin" placeholder="Insulin"><span class="hint">16–166</span></div>
+        <div class="field"><input name="bmi" placeholder="BMI"><span class="hint">18.5–24.9</span></div>
+        <div class="field"><input name="dpf" placeholder="DPF"><span class="hint">0.08–2.42</span></div>
+        <div class="field"><input name="age" placeholder="Age"><span class="hint">18+</span></div>
+
+        <button type="submit">Analyze Risk</button>
+
+        {% if prediction %}
+        <div class="result">{{ prediction }}</div>
+        {% endif %}
+
+    </form>
+
+    <div class="ecg-box">
+        <svg viewBox="0 0 300 80" width="100%" height="80">
+            <path class="line"
+                d="M0 40 L20 40 L30 20 L40 60 L50 40 L70 40 L80 30 L90 50 L100 40 L300 40" />
+        </svg>
+    </div>
+
+</div>
+
+<script>
+function selectGender(g, e) {
+    document.getElementById("gender").value = g;
+
+    document.querySelectorAll(".gbtn").forEach(b => b.classList.remove("active"));
+    e.target.classList.add("active");
+
+    document.getElementById("pregnancyField").style.display =
+        (g === "female") ? "flex" : "none";
+}
+
+/* particles */
+const canvas = document.getElementById("bg");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let particles = [];
+
+for (let i = 0; i < 50; i++) {
+    particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 2,
+        dx: (Math.random() - 0.5),
+        dy: (Math.random() - 0.5)
+    });
+}
+
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "rgba(255,80,80,0.4)";
+
+    particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+    });
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+
+</body>
+</html>

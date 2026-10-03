@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prediction Result</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: 0.6s ease;
+        }
+
+        /* 🌈 BACKGROUND STATES */
+        body.low { background: radial-gradient(circle, #01542d, #002715); }
+        body.medium { background: radial-gradient(circle, #715301, #000); }
+        body.high { background: radial-gradient(circle, #6d0101, #000); }
+
+        .card {
+            width: 420px;
+            padding: 30px;
+            border-radius: 18px;
+            text-align: center;
+
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(14px);
+
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        /* 🎯 RISK METER */
+        .circle {
+            width: 160px;
+            height: 160px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        svg {
+            transform: rotate(-90deg);
+        }
+
+        .bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.1);
+            stroke-width: 12;
+        }
+
+        .progress {
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: 1.5s ease;
+        }
+
+        .label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        /* 🔘 BACK BUTTON (NO GLOW) */
+        button {
+            margin-top: 20px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+    </style>
+</head>
+
+<body class="{{ risk|lower }}">
+
+<div class="card">
+
+    <h2>{{ message }}</h2>
+
+    <!-- 🎯 RISK METER -->
+    <div class="circle">
+        <svg width="160" height="160">
+            <circle class="bg" cx="80" cy="80" r="60"></circle>
+            <circle id="meter"
+                    class="progress"
+                    cx="80" cy="80" r="60"
+                    stroke="#00ff99"></circle>
+        </svg>
+
+        <div class="label" id="percent">0%</div>
+    </div>
+
+    <a href="/">
+        <button id="backBtn">← Back</button>
+    </a>
+
+</div>
+
+<script>
+    let risk = "{{ risk }}";
+    let prob = parseFloat("{{ prob }}");
+
+    let meter = document.getElementById("meter");
+    let percentText = document.getElementById("percent");
+    let backBtn = document.getElementById("backBtn");
+
+    let radius = 60;
+    let circumference = 2 * Math.PI * radius;
+
+    meter.style.strokeDasharray = circumference;
+    meter.style.strokeDashoffset = circumference;
+
+    let target = prob;
+
+    let color = "#00ff99";
+    let btnColor = "#00ff99";
+
+    if (risk === "LOW") {
+        color = "#00ff99cc";   // green with transparency
+        btnColor = "#00ff99cc";
+    }
+    else if (risk === "MEDIUM") {
+        color = "#ffb347cc";   // orange with transparency
+        btnColor = "#ffb347cc";
+    }
+    else if (risk === "HIGH") {
+        color = "#ff4d4dcc";   // red with transparency
+        btnColor = "#ff4d4dcc";
+    }
+
+    meter.style.stroke = color;
+    backBtn.style.background = btnColor;
+
+    let current = 0;
+
+    function animate() {
+        let progress = current / 100 * circumference;
+        meter.style.strokeDashoffset = circumference - progress;
+        percentText.innerText = current.toFixed(0) + "%";
+
+        if (current < target) {
+            current += 1;
+            requestAnimationFrame(animate);
+        }
+    }
+
+    animate();
+</script>
+
+</body>
+</html>
